@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Telegram Game</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    iframe {
+      border: none;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <!-- Game từ itch.io -->
+  <iframe frameborder="0" src="https://itch.io/embed-upload/14373201?color=333333" allowfullscreen="" width="1920" height="1100"><a href="https://songdang.itch.io/gold-or-gone">Play Gold or Gone on itch.io</a></iframe>
+
+
+  <script>
+    // Kết nối với Telegram WebApp API
+    const tg = window.Telegram.WebApp;
+    tg.expand(); //full man hinh
+    console.log("User info:", tg.initDataUnsafe?.user);
+  </script>
+</body>
+</html>
