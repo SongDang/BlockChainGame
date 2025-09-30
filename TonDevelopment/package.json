@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@orbs-network/ton-access": "^2.3.3",
+    "@ton/core": "^0.61.0",
+    "@ton/crypto": "^3.3.0",
+    "@ton/ton": "^15.3.1",
+    "ts-node": "^10.9.2"
+  }
+}
