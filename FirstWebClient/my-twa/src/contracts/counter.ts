@@ -12,7 +12,13 @@ export default class Counter implements Contract {
     return new Counter(address, { code, data });
   }
   
-  constructor(readonly address: Address, readonly init?: { code: Cell, data: Cell }) {}
+  public readonly address: Address;
+  public readonly init?: { code: Cell, data: Cell };
+
+  constructor(address: Address, init?: { code: Cell, data: Cell }) {
+    this.address = address;
+    this.init = init;
+  }
 
   async sendDeploy(provider: ContractProvider, via: Sender) {
     await provider.internal(via, {
