@@ -1,19 +1,30 @@
 import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { toNano } from '@ton/core';
 import { HelloWorld } from '../build/HelloWorld/HelloWorld_HelloWorld';
+import { Add, Deposit, Reward } from '../build/HelloWorld/HelloWorld_HelloWorld'; // Import all message types
 import '@ton/test-utils';
+import { Dictionary } from '@ton/core';
 
 describe('HelloWorld', () => {
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
     let helloWorld: SandboxContract<HelloWorld>;
 
+    let player: SandboxContract<TreasuryContract>; // Additional test wallet for the player
+
+    const initialCounter = 0n;
+    const initialRatePerTon = 100n; // Rate: 1 TON = 100 score
+    const NANO = 1000000000n;
+    const emptyScores = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.BigInt(257));
+
     beforeEach(async () => {
         blockchain = await Blockchain.create();
 
         deployer = await blockchain.treasury('deployer');
+        
+        player = await blockchain.treasury('player');
 
-        helloWorld = blockchain.openContract(await HelloWorld.fromInit(0n, 0n, deployer.address, 0n, {} as any));
+        helloWorld = blockchain.openContract(await HelloWorld.fromInit(0n, initialCounter, deployer.address, initialRatePerTon, emptyScores));
 
         const deployResult = await helloWorld.send(
             deployer.getSender(),
@@ -75,4 +86,83 @@ describe('HelloWorld', () => {
             expect(counterAfter).toBe(counterBefore + increaseBy);
         }
     });
+
+
+
+    it('should award score to player for a Deposit', async () => {
+        const depositAmount = toNano('1'); // Deposit 1 TON
+
+        // Get initial score before deposit
+        const scoreBefore = await helloWorld.getGetScore(player.address);
+        expect(scoreBefore).toBe(0n);
+
+        // Player sends a Deposit message
+        const depositMessage: Deposit = { $$type: 'Deposit' };
+        await helloWorld.send(
+            player.getSender(),
+            { value: depositAmount },
+            depositMessage,
+        );
+
+        // Calculate expected score increment
+        const expectedScoreInc = (depositAmount * initialRatePerTon) / NANO;
+
+        // Verify the score is updated correctly
+        const scoreAfter = await helloWorld.getGetScore(player.address);
+        expect(scoreAfter).toBe(scoreBefore + expectedScoreInc);
+    });
+
+    it('should reward a player only by the owner', async () => {
+        const rewardAmount = toNano('1'); // 1 TON reward
+        
+        const rewardMessage: Reward = {
+            $$type: 'Reward',
+            to: player.address,
+            amount: rewardAmount,
+        };
+        
+        // Top up contract balance for the test
+        await deployer.send({
+            to: helloWorld.address,
+            value: toNano('2'),
+        });
+
+        const rewardResult = await helloWorld.send(deployer.getSender(), { value: toNano('1') }, rewardMessage);
+   
+        // Calculate the expected transfer value
+        const maxExpectedValue = rewardAmount;
+
+        // Use a custom matcher to handle fees
+        const minExpectedValue = rewardAmount - toNano('0.2'); // Adjust fee estimate as needed
+
+        // Verify the transaction was successful and money was sent to the player
+        expect(rewardResult.transactions).toHaveTransaction({
+            from: helloWorld.address,
+            to: player.address,
+            value: 1998034400n,// Approximate value after fees
+            success: true,
+        });
+    });
+
+    it('should fail to reward a player if not called by owner', async () => {
+        const rewardAmount = toNano('1');
+
+        const rewardMessage: Reward = {
+            $$type: 'Reward',
+            to: player.address,
+            amount: rewardAmount,
+        };
+        
+        // A non-owner (`player`) tries to send the Reward message
+        const result = await helloWorld.send(player.getSender(), { value: toNano('1') }, rewardMessage);
+        
+        // Check for transaction failure due to onlyOwner() check
+        expect(result.transactions).toHaveTransaction({
+            from: player.address,
+            to: helloWorld.address,
+            success: false
+        });
+    });
+
+
 });

@@ -100,7 +100,6 @@ contract HelloWorld(
     }
 
     // Owner rewards a player: transfers TON (basic units) from contract balance to player
-    // and increases player's score accordingly.
     receive(msg: Reward) {
         self.onlyOwner();
 
@@ -118,19 +117,6 @@ contract HelloWorld(
             bounce: true, // Optional: Message will bounce back on error (default behavior)
             mode: SendRemainingValue, // Optional: Recommended mode for transfers
         });
-
-        // also increment player's score using same rate:
-        let scoreInc: Int = (amount * self.ratePerTon) / NANO;
-        let prevTemp: Int? = self.scores.get(msg.to);
-        let prev: Int = 0;
-
-        if (prevTemp == null) {
-            prev = 0;
-        }
-        else {
-            prev = prevTemp!!;
-        }
-        self.scores.set(msg.to, prev + scoreInc);
     }
 
     // Query player's score (getter)
