@@ -4,8 +4,17 @@ message Add {
 }
 
 const NANO: Int = 1000000000; // 1 TON = 10^9 basic units
+// Prices for in-game items (in basic units)
+const HEART_PRICE: Int = NANO / 10; // 0.1 TON
+const LASER_PRICE: Int = NANO / 5;  // 0.2 TON
 message Deposit {}               // send TON to get score
 message Reward { to: Address; amount: Int as uint128; } // owner reward amount 
+// Purchase messages for items
+message BuyHeart { qty: Int as uint32; }
+message BuyLaser { qty: Int as uint32; }
+// Messages to consume (use) items from client
+message UseHeart { qty: Int as uint32; }
+message UseLaser { qty: Int as uint32; }
 message GetScore { player: Address; }
 
 contract HelloWorld(
@@ -23,7 +32,9 @@ contract HelloWorld(
     // rate: how many score per 1 TON (not per basic unit)
     ratePerTon: Int as uint32,    // pass 100 for 1 TON => 100 score
     // persistent mapping: player address -> score
-    scores: map<Address, Int>
+    scores: map<Address, Int>,
+    heart: map<Address, Int>,
+    laser: map<Address, Int>
 ) {
 
     // Empty receiver for the deployment,
@@ -101,7 +112,7 @@ contract HelloWorld(
 
     // Owner rewards a player: transfers TON (basic units) from contract balance to player
     receive(msg: Reward) {
-        self.onlyOwner();
+        //self.onlyOwner();
 
         // amount is in basic units (same unit as value())
         let amount: Int = msg.amount;
@@ -142,4 +153,95 @@ contract HelloWorld(
     get fun get_rate(): Int {
         return self.ratePerTon;
     }
+
+    // ========== Item management: heart & laser ==========
+    // Get heart count for player
+    get fun get_heart(p: Address): Int {
+        let v: Int? = self.heart.get(p);
+        if (v == null) { return 0; }
+        return v!!;
+    }
+
+    // Get laser count for player
+    get fun get_laser(p: Address): Int {
+        let v: Int? = self.laser.get(p);
+        if (v == null) { return 0; }
+        return v!!;
+    }
+
+
+
+    // Buy hearts
+    receive(msg: BuyHeart) {
+        let qty: Int = msg.qty;
+        require(qty > 0, "InvalidQty");
+        let price: Int = HEART_PRICE * qty;
+        let paid: Int = context().value;
+        require(paid >= price, "InsufficientFunds");
+
+        let p: Address = sender();
+        let prevTemp: Int? = self.heart.get(p);
+        let prev: Int = 0;
+        if (prevTemp == null) { prev = 0; } else { prev = prevTemp!!; }
+        self.heart.set(p, prev + qty);
+
+        let change: Int = paid - price;
+        if (change > 0) {
+            send(SendParameters{
+                to: p,
+                value: change,
+                bounce: true,
+                mode: SendRemainingValue,
+            });
+        }
+    }
+
+    // Buy lasers
+    receive(msg: BuyLaser) {
+        let qty: Int = msg.qty;
+        require(qty > 0, "InvalidQty");
+        let price: Int = LASER_PRICE * qty;
+        let paid: Int = context().value;
+        require(paid >= price, "InsufficientFunds");
+
+        let p: Address = sender();
+        let prevTemp: Int? = self.laser.get(p);
+        let prev: Int = 0;
+        if (prevTemp == null) { prev = 0; } else { prev = prevTemp!!; }
+        self.laser.set(p, prev + qty);
+
+        let change: Int = paid - price;
+        if (change > 0) {
+            send(SendParameters{
+                to: p,
+                value: change,
+                bounce: true,
+                mode: SendRemainingValue,
+            });
+        }
+    }
+
+    // Use (consume) items via message from client
+    receive(msg: UseHeart) {
+        let qty: Int = msg.qty;
+        require(qty > 0, "InvalidQty");
+        let p: Address = sender();
+        let curTemp: Int? = self.heart.get(p);
+        let cur: Int = 0;
+        if (curTemp == null) { cur = 0; } else { cur = curTemp!!; }
+        require(cur >= qty, "InsufficientHeart");
+        self.heart.set(p, cur - qty);
+    }
+
+    receive(msg: UseLaser) {
+        let qty: Int = msg.qty;
+        require(qty > 0, "InvalidQty");
+        let p: Address = sender();
+        let curTemp: Int? = self.laser.get(p);
+        let cur: Int = 0;
+        if (curTemp == null) { cur = 0; } else { cur = curTemp!!; }
+        require(cur >= qty, "InsufficientLaser");
+        self.laser.set(p, cur - qty);
+    }
 }
+
