@@ -23,7 +23,7 @@ describe('HelloWorld', () => {
         blockchain = await Blockchain.create();
 
         deployer = await blockchain.treasury('deployer');
-        
+
         player = await blockchain.treasury('player');
 
         helloWorld = blockchain.openContract(await HelloWorld.fromInit(0n, initialCounter, deployer.address, initialRatePerTon, emptyScores, emptyHeart, emptyLaser));
@@ -184,18 +184,18 @@ describe('HelloWorld', () => {
 
     it('should use heart via UseHeart and decrease inventory', async () => {
         // ensure player has exactly 1 heart
-        const buy = helloWorld.send(player.getSender(), { value: toNano('0.1') }, { $$type: 'BuyHeart', qty: 1n });
-        
-        expect((await buy).transactions).toHaveTransaction({
-        from: player.address,
-        to: helloWorld.address,
-        success: true
+        const buy = await helloWorld.send(player.getSender(), { value: toNano('0.1') }, { $$type: 'BuyHeart', qty: 1n });
+
+        expect(buy.transactions).toHaveTransaction({
+            from: player.address,
+            to: helloWorld.address,
+            success: true
         });
 
         const before = await helloWorld.getGetHeart(player.address);
         expect(before).toBe(1n);
 
-        const useResult = await helloWorld.send(player.getSender(), { value: toNano('0') }, { $$type: 'UseHeart', qty: 1n });
+        const useResult = await helloWorld.send(player.getSender(), { value: toNano('0.1') }, { $$type: 'UseHeart', qty: 1n });
         expect(useResult.transactions).toHaveTransaction({ from: player.address, to: helloWorld.address, success: true });
 
         const after = await helloWorld.getGetHeart(player.address);
