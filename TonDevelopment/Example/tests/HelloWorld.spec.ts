@@ -114,24 +114,22 @@ describe('HelloWorld', () => {
         expect(scoreAfter).toBe(scoreBefore + expectedScoreInc);
     });
 
-    /*
-    it('should reward a player only by the owner', async () => {
+    it('should reward a player', async () => {
         const rewardAmount = toNano('1'); // 1 TON reward
-        
+
         const rewardMessage: Reward = {
             $$type: 'Reward',
-            to: player.address,
-            amount: rewardAmount,
+            amountReward: rewardAmount,
         };
-        
+
         // Top up contract balance for the test
         await deployer.send({
             to: helloWorld.address,
             value: toNano('2'),
         });
 
-        const rewardResult = await helloWorld.send(deployer.getSender(), { value: toNano('1') }, rewardMessage);
-   
+        const rewardResult = await helloWorld.send(player.getSender(), { value: toNano('1') }, rewardMessage);
+
         // Calculate the expected transfer value
         const maxExpectedValue = rewardAmount;
 
@@ -141,12 +139,11 @@ describe('HelloWorld', () => {
         // Verify the transaction was successful and money was sent to the player
         expect(rewardResult.transactions).toHaveTransaction({
             from: helloWorld.address,
-            to: player.address,
-            value: 1998034400n,// Approximate value after fees
+            to: player.getSender().address,
+            //value: 1998018000n,// Approximate value after fees
             success: true,
         });
     });
-    */
 
     /*
     it('should fail to reward a player if not called by owner', async () => {

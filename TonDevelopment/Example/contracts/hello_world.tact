@@ -7,8 +7,12 @@ const NANO: Int = 1000000000; // 1 TON = 10^9 basic units
 // Prices for in-game items (in basic units)
 const HEART_PRICE: Int = NANO / 10; // 0.1 TON
 const LASER_PRICE: Int = NANO / 5;  // 0.2 TON
-message Deposit {}               // send TON to get score
-message Reward { to: Address; amount: Int as uint128; } // owner reward amount 
+const GOLD_PRICE: Int = NANO / 100; // 0.01 TON
+const DIAMOND_PRICE: Int = NANO / 10; // 0.1 TON
+const WIN_PRICE: Int = NANO / 10; // 0.1 TON
+
+message Deposit {}  // send TON to get score
+message Reward { amountReward: Int as uint128; } // owner reward amount 
 // Purchase messages for items
 message BuyHeart { qty: Int as uint32; }
 message BuyLaser { qty: Int as uint32; }
@@ -113,18 +117,18 @@ contract HelloWorld(
     // Owner rewards a player: transfers TON (basic units) from contract balance to player
     receive(msg: Reward) {
         //self.onlyOwner();
-
+        let p: Address = sender();
         // amount is in basic units (same unit as value())
-        let amount: Int = msg.amount;
+        let amountReward: Int = msg.amountReward;
 
         // Basic safety: check contract has enough balance
         // balance() returns current contract balance (basic units)
-        require(myBalance() >= amount, "Insufficient"); // error if insufficient
+        require(myBalance() >= amountReward, "Insufficient"); // error if insufficient
 
         // transfer amount to player
         send(SendParameters{
-            to: msg.to,
-            value: amount,
+            to: p,
+            value: amountReward,
             bounce: true, // Optional: Message will bounce back on error (default behavior)
             mode: SendRemainingValue, // Optional: Recommended mode for transfers
         });
@@ -169,6 +173,20 @@ contract HelloWorld(
         return v!!;
     }
 
+    // Get price gold
+    get fun get_price_gold(): Int {
+        return GOLD_PRICE;
+    }
+
+    // Get price diamond
+    get fun get_price_diamond(): Int {
+        return DIAMOND_PRICE;
+    }
+
+    // Get price win
+    get fun get_price_win(): Int {
+        return WIN_PRICE;
+    }
 
 
     // Buy hearts
