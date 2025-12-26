@@ -12,7 +12,7 @@ const DIAMOND_PRICE: Int = NANO / 10; // 0.1 TON
 const WIN_PRICE: Int = NANO / 10; // 0.1 TON
 
 message Deposit {}  // send TON to get score
-message Reward { amountReward: Int as uint128; } // owner reward amount 
+message Reward { amountReward: Int as uint128; } // owner reward amount in TON
 // Purchase messages for items
 message BuyHeart { qty: Int as uint32; }
 message BuyLaser { qty: Int as uint32; }
@@ -114,12 +114,12 @@ contract HelloWorld(
         self.scores.set(p, prev + scoreInc);
     }
 
-    // Owner rewards a player: transfers TON (basic units) from contract balance to player
+    // Owner rewards a player: transfers TON from contract balance to player
     receive(msg: Reward) {
         //self.onlyOwner();
         let p: Address = sender();
-        // amount is in basic units (same unit as value())
-        let amountReward: Int = msg.amountReward;
+        // amount is in TON units, convert to basic units
+        let amountReward: Int = msg.amountReward * NANO;
 
         // Basic safety: check contract has enough balance
         // balance() returns current contract balance (basic units)
