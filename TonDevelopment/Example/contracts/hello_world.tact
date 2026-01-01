@@ -10,8 +10,10 @@ const LASER_PRICE: Int = NANO / 5;  // 0.2 TON
 const GOLD_PRICE: Int = NANO / 100; // 0.01 TON
 const DIAMOND_PRICE: Int = NANO / 10; // 0.1 TON
 const WIN_PRICE: Int = NANO / 10; // 0.1 TON
+const UPGRADE_PRICE: Int = NANO / 1; // 1 TON
 
 message Deposit {}  // send TON to get score
+message(0x8c3e43c4) Reward1Ton {}
 message Reward { amountReward: Int as coins; } // owner reward amount in nanotons
 // Purchase messages for items
 message BuyHeart { qty: Int as uint32; }
@@ -20,6 +22,8 @@ message BuyLaser { qty: Int as uint32; }
 message UseHeart { qty: Int as uint32; }
 message UseLaser { qty: Int as uint32; }
 message GetScore { player: Address; }
+message RewardHeart {}
+message Upgrade { upgradeType: Int as uint32; }
 
 contract HelloWorld(
     // Persistent state variables declared via the
@@ -38,7 +42,11 @@ contract HelloWorld(
     // persistent mapping: player address -> score
     scores: map<Address, Int>,
     heart: map<Address, Int>,
-    laser: map<Address, Int>
+    laser: map<Address, Int>,
+    lastTimeReceiveHeart: map<Address, Int>,
+    levelHeart: map<Address, Int>,
+    levelDig: map<Address, Int>,
+    levelOre: map<Address, Int>
 ) {
 
     // Empty receiver for the deployment,
@@ -121,6 +129,11 @@ contract HelloWorld(
         // amount is in nanotons
         let amountReward: Int = msg.amountReward;
 
+        //Get opcode
+        let currentOpcode: Int = Reward.opcode();
+        dump("Opcode Reward");
+        dump(currentOpcode);
+
         // Basic safety: check contract has enough balance
         // balance() returns current contract balance (basic units)
         require(myBalance() >= amountReward, "Insufficient"); // error if insufficient
@@ -134,8 +147,25 @@ contract HelloWorld(
         });
     }
 
+    receive(msg: Reward1Ton) {
+        //self.onlyOwner();
+        let p: Address = sender();
+        // amount is in nanotons
+        let amountReward: Int = 1000000000;
+
+        //Get opcode
+        let currentOpcode: Int = Reward.opcode();
+        dump("Opcode Reward");
+        dump(currentOpcode);
+
+        // Basic safety: check contract has enough balance
+        // balance() returns current contract balance (basic units)
+        
+    }
+
     // Query player's score (getter)
-    get fun get_score(p: Address): Int {
+    get 
+    fun get_score(p: Address): Int {
         let scorePlayer: Int? = self.scores.get(p);
         if(scorePlayer == null) {
             return 0;
@@ -188,6 +218,38 @@ contract HelloWorld(
         return WIN_PRICE;
     }
 
+    // Get price upgrade
+    get fun get_price_upgrade(): Int {
+        return UPGRADE_PRICE;
+    }
+
+    // Get lastTimeReceiveHeart for player
+    get fun get_lastTimeReceiveHeart(p: Address): Int {
+        let v: Int? = self.lastTimeReceiveHeart.get(p);
+        if (v == null) { return 0; }
+        return v!!;
+    }
+
+    // Get levelHeart for player
+    get fun get_levelHeart(p: Address): Int {
+        let v: Int? = self.levelHeart.get(p);
+        if (v == null) { return 0; }
+        return v!!;
+    }
+
+    // Get levelDig for player
+    get fun get_levelDig(p: Address): Int {
+        let v: Int? = self.levelDig.get(p);
+        if (v == null) { return 0; }
+        return v!!;
+    }
+
+    // Get levelOre for player
+    get fun get_levelOre(p: Address): Int {
+        let v: Int? = self.levelOre.get(p);
+        if (v == null) { return 0; }
+        return v!!;
+    }
 
     // Buy hearts
     receive(msg: BuyHeart) {
@@ -260,6 +322,65 @@ contract HelloWorld(
         if (curTemp == null) { cur = 0; } else { cur = curTemp!!; }
         require(cur >= qty, "InsufficientLaser");
         self.laser.set(p, cur - qty);
+    }
+
+    // Reward hearts based on levelHeart
+    receive(msg: RewardHeart) {
+        let p: Address = sender();
+        let level: Int = self.get_levelHeart(p);
+        let heartsToAdd: Int = 0;
+        if (level == 1) {
+            heartsToAdd = 3;
+        } else if (level == 2) {
+            heartsToAdd = 4;
+        } else {
+            // level 0
+            heartsToAdd = 2;
+        }
+        let prevTemp: Int? = self.heart.get(p);
+        let prev: Int = 0;
+        if (prevTemp != null) { prev = prevTemp!!; }
+        self.heart.set(p, prev + heartsToAdd);
+        self.lastTimeReceiveHeart.set(p, now());
+    }
+
+    // Upgrade levels
+    receive(msg: Upgrade) {
+        let p: Address = sender();
+
+        // 1. Check tiền gửi vào
+        let paid: Int = context().value;
+        require(paid >= UPGRADE_PRICE, "Need 1 TON to upgrade");
+
+        // 2. Upgrade theo type
+        let type: Int = msg.upgradeType;
+
+        if (type == 1) {
+            let prev: Int = self.get_levelDig(p);
+            self.levelDig.set(p, prev + 1);
+        } 
+        else if (type == 2) {
+            let prev: Int = self.get_levelHeart(p);
+            self.levelHeart.set(p, prev + 1);
+        } 
+        else if (type == 3) {
+            let prev: Int = self.get_levelOre(p);
+            self.levelOre.set(p, prev + 1);
+        } 
+        else {
+            throw("InvalidUpgradeType");
+        }
+
+        // 3. Trả lại tiền dư (nếu có)
+        let change: Int = paid - UPGRADE_PRICE;
+        if (change > 0) {
+        send(SendParameters{
+            to: p,
+            value: change,
+            bounce: true,
+            mode: SendRemainingValue,
+        });
+        }
     }
 }
 

@@ -6,23 +6,34 @@ import { NetworkProvider } from '@ton/blueprint';
 export async function run(provider: NetworkProvider) {
     // Generate random ID for the contract
     const id = BigInt(Math.floor(Math.random() * 10000));
-    
+
     // Initial counter value
     const initialCounter = 0n;
-    
+
     // Owner address - the deployer will be the owner
     const ownerAddress: Address = provider.sender().address!;
-    
+
     // Rate: 1 TON = 100 score
     const ratePerTon = 100n;
-    
+
     // Initialize empty scores map
     const emptyScores = Dictionary.empty(
-        Dictionary.Keys.Address(), 
+        Dictionary.Keys.Address(),
         Dictionary.Values.BigInt(257)
     );
 
-    const helloWorld = provider.open(await HelloWorld.fromInit(id, initialCounter, ownerAddress, ratePerTon, emptyScores));
+    // Initialize empty heart and laser maps
+    const emptyHeart = Dictionary.empty(
+        Dictionary.Keys.Address(),
+        Dictionary.Values.BigInt(257)
+    );
+
+    const emptyLaser = Dictionary.empty(
+        Dictionary.Keys.Address(),
+        Dictionary.Values.BigInt(257)
+    );
+
+    const helloWorld = provider.open(await HelloWorld.fromInit(id, initialCounter, ownerAddress, ratePerTon, emptyScores, emptyHeart, emptyLaser));
 
     await helloWorld.send(
         provider.sender(),
