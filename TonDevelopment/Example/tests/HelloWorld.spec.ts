@@ -18,6 +18,10 @@ describe('HelloWorld', () => {
     const emptyScores = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.BigInt(257));
     const emptyHeart = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.BigInt(257));
     const emptyLaser = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.BigInt(257));
+    const emptyLastTimeReceiveHeart = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.BigInt(257));
+    const emptyLevelHeart = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.BigInt(257));
+    const emptyLevelDig = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.BigInt(257));
+    const emptyLevelOre = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.BigInt(257));
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
@@ -26,7 +30,7 @@ describe('HelloWorld', () => {
 
         player = await blockchain.treasury('player');
 
-        helloWorld = blockchain.openContract(await HelloWorld.fromInit(0n, initialCounter, deployer.address, initialRatePerTon, emptyScores, emptyHeart, emptyLaser));
+        helloWorld = blockchain.openContract(await HelloWorld.fromInit(0n, initialCounter, deployer.address, initialRatePerTon, emptyScores, emptyHeart, emptyLaser, emptyLastTimeReceiveHeart, emptyLevelHeart, emptyLevelDig, emptyLevelOre));
 
         const deployResult = await helloWorld.send(
             deployer.getSender(),
@@ -214,6 +218,45 @@ describe('HelloWorld', () => {
 
         const res = await helloWorld.send(player.getSender(), { value: toNano('0') }, { $$type: 'UseHeart', qty: 1n });
         expect(res.transactions).toHaveTransaction({ from: player.address, to: helloWorld.address, success: false });
+    });
+
+    it('should reward hearts based on levelHeart', async () => {
+        // Set levelHeart to 1
+        await helloWorld.send(player.getSender(), { value: toNano('1.01') }, { $$type: 'Upgrade', upgradeType: 2n });
+        let level = await helloWorld.getGetLevelHeart(player.address);
+        expect(level).toBe(1n);
+
+        const heartsBefore = await helloWorld.getGetHeart(player.address);
+        const timeBefore = await helloWorld.getGetLastTimeReceiveHeart(player.address);
+
+        const rewardResult = await helloWorld.send(player.getSender(), { value: toNano('0.01') }, { $$type: 'RewardHeart' });
+        expect(rewardResult.transactions).toHaveTransaction({ from: player.address, to: helloWorld.address, success: true });
+
+        const heartsAfter = await helloWorld.getGetHeart(player.address);
+        const timeAfter = await helloWorld.getGetLastTimeReceiveHeart(player.address);
+
+        expect(heartsAfter).toBe(heartsBefore + 3n);
+        expect(timeAfter).toBeGreaterThan(timeBefore);
+    });
+
+    it('should upgrade levels correctly', async () => {
+        // Upgrade levelDig
+        const digBefore = await helloWorld.getGetLevelDig(player.address);
+        await helloWorld.send(player.getSender(), { value: toNano('1.01') }, { $$type: 'Upgrade', upgradeType: 1n });
+        const digAfter = await helloWorld.getGetLevelDig(player.address);
+        expect(digAfter).toBe(digBefore + 1n);
+
+        // Upgrade levelOre
+        const oreBefore = await helloWorld.getGetLevelOre(player.address);
+        await helloWorld.send(player.getSender(), { value: toNano('1.01') }, { $$type: 'Upgrade', upgradeType: 3n });
+        const oreAfter = await helloWorld.getGetLevelOre(player.address);
+        expect(oreAfter).toBe(oreBefore + 1n);
+
+        // Upgrade levelHeart
+        const heartBefore = await helloWorld.getGetLevelHeart(player.address);
+        await helloWorld.send(player.getSender(), { value: toNano('1.01') }, { $$type: 'Upgrade', upgradeType: 2n });
+        const heartAfter = await helloWorld.getGetLevelHeart(player.address);
+        expect(heartAfter).toBe(heartBefore + 1n);
     });
 
 });

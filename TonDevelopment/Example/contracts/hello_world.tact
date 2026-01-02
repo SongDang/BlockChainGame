@@ -143,7 +143,7 @@ contract HelloWorld(
             to: p,
             value: amountReward,
             bounce: true, // Optional: Message will bounce back on error (default behavior)
-            mode: SendRemainingValue, // Optional: Recommended mode for transfers
+            mode: 0, // Optional: Recommended mode for transfers
         });
     }
 
@@ -271,7 +271,7 @@ contract HelloWorld(
                 to: p,
                 value: change,
                 bounce: true,
-                mode: SendRemainingValue,
+                mode: 0,
             });
         }
     }
@@ -296,7 +296,7 @@ contract HelloWorld(
                 to: p,
                 value: change,
                 bounce: true,
-                mode: SendRemainingValue,
+                mode: 0,
             });
         }
     }
@@ -363,13 +363,11 @@ contract HelloWorld(
             let prev: Int = self.get_levelHeart(p);
             self.levelHeart.set(p, prev + 1);
         } 
-        else if (type == 3) {
+        else {
             let prev: Int = self.get_levelOre(p);
             self.levelOre.set(p, prev + 1);
         } 
-        else {
-            throw("InvalidUpgradeType");
-        }
+        
 
         // 3. Trả lại tiền dư (nếu có)
         let change: Int = paid - UPGRADE_PRICE;
@@ -378,7 +376,7 @@ contract HelloWorld(
             to: p,
             value: change,
             bounce: true,
-            mode: SendRemainingValue,
+            mode: 0,
         });
         }
     }

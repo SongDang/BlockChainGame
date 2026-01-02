@@ -33,7 +33,28 @@ export async function run(provider: NetworkProvider) {
         Dictionary.Values.BigInt(257)
     );
 
-    const helloWorld = provider.open(await HelloWorld.fromInit(id, initialCounter, ownerAddress, ratePerTon, emptyScores, emptyHeart, emptyLaser));
+    // Initialize empty new maps
+    const emptyLastTimeReceiveHeart = Dictionary.empty(
+        Dictionary.Keys.Address(),
+        Dictionary.Values.BigInt(257)
+    );
+
+    const emptyLevelHeart = Dictionary.empty(
+        Dictionary.Keys.Address(),
+        Dictionary.Values.BigInt(257)
+    );
+
+    const emptyLevelDig = Dictionary.empty(
+        Dictionary.Keys.Address(),
+        Dictionary.Values.BigInt(257)
+    );
+
+    const emptyLevelOre = Dictionary.empty(
+        Dictionary.Keys.Address(),
+        Dictionary.Values.BigInt(257)
+    );
+
+    const helloWorld = provider.open(await HelloWorld.fromInit(id, initialCounter, ownerAddress, ratePerTon, emptyScores, emptyHeart, emptyLaser, emptyLastTimeReceiveHeart, emptyLevelHeart, emptyLevelDig, emptyLevelOre));
 
     await helloWorld.send(
         provider.sender(),
