@@ -223,6 +223,16 @@ contract HelloWorld(
         return UPGRADE_PRICE;
     }
 
+    // Get price heart
+    get fun get_price_heart(): Int {
+        return HEART_PRICE;
+    }
+
+    // Get price laser
+    get fun get_price_laser(): Int {
+        return LASER_PRICE;
+    }
+
     // Get lastTimeReceiveHeart for player
     get fun get_lastTimeReceiveHeart(p: Address): Int {
         let v: Int? = self.lastTimeReceiveHeart.get(p);

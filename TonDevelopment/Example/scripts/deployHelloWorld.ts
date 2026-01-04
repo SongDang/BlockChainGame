@@ -71,4 +71,10 @@ export async function run(provider: NetworkProvider) {
     console.log('Owner:', (await helloWorld.getGetOwner()).toString());
     console.log('Rate:', await helloWorld.getGetRate());
     console.log('Balance:', await helloWorld.getGetBalance());
+    console.log('Price Gold:', await helloWorld.getGetPriceGold());
+    console.log('Price Diamond:', await helloWorld.getGetPriceDiamond());
+    console.log('Price Win:', await helloWorld.getGetPriceWin());
+    console.log('Price Upgrade:', await helloWorld.getGetPriceUpgrade());
+    console.log('Price Heart:', await helloWorld.getGetPriceHeart());
+    console.log('Price Laser:', await helloWorld.getGetPriceLaser());
 }
