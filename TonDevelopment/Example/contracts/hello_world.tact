@@ -11,6 +11,7 @@ const GOLD_PRICE: Int = NANO / 100; // 0.01 TON
 const DIAMOND_PRICE: Int = NANO / 10; // 0.1 TON
 const WIN_PRICE: Int = NANO / 10; // 0.1 TON
 const UPGRADE_PRICE: Int = NANO / 1; // 1 TON
+const REWARD_HEART_COOLDOWN: Int = 86400; // 86400 = 24 * 60 * 60 (seconds)
 
 message Deposit {}  // send TON to get score
 message(0x8c3e43c4) Reward1Ton {}
@@ -24,6 +25,29 @@ message UseLaser { qty: Int as uint32; }
 message GetScore { player: Address; }
 message RewardHeart {}
 message Upgrade { upgradeType: Int as uint32; }
+
+// Player infomation
+struct PlayerInfo {
+    score: Int as coins;
+    heart: Int as uint32;
+    laser: Int as uint32;
+    lastTimeReceiveHeart: Int as uint32;
+    remainingHeartCooldown: Int as uint32;
+    levelHeart: Int as uint32;
+    levelDig: Int as uint32;
+    levelOre: Int as uint32;
+}
+
+// Items price
+struct ItemPrices {
+    priceHeart: Int as coins;
+    priceLaser: Int as coins;
+    priceGold: Int as coins;
+    priceDiamond: Int as coins;
+    priceWin: Int as coins;
+    priceUpgrade: Int as coins;
+    ratePerTon: Int as uint32;
+}
 
 contract HelloWorld(
     // Persistent state variables declared via the
@@ -233,11 +257,28 @@ contract HelloWorld(
         return LASER_PRICE;
     }
 
+    // Get reward heart cooldown
+    get fun get_reward_heart_cooldown(): Int {
+        return REWARD_HEART_COOLDOWN;
+    }
+
     // Get lastTimeReceiveHeart for player
     get fun get_lastTimeReceiveHeart(p: Address): Int {
         let v: Int? = self.lastTimeReceiveHeart.get(p);
         if (v == null) { return 0; }
         return v!!;
+    }
+
+    get fun get_reward_heart_remaining(p: Address): Int {
+        let last: Int = self.get_lastTimeReceiveHeart(p);
+        if (last == 0) {
+            return 0;
+        }
+        let passed: Int = now() - last;
+        if (passed >= REWARD_HEART_COOLDOWN) {
+            return 0;
+        }
+        return REWARD_HEART_COOLDOWN - passed;
     }
 
     // Get levelHeart for player
@@ -337,6 +378,13 @@ contract HelloWorld(
     // Reward hearts based on levelHeart
     receive(msg: RewardHeart) {
         let p: Address = sender();
+
+        let last: Int = self.get_lastTimeReceiveHeart(p);
+        require(
+            last == 0 || now() - last >= REWARD_HEART_COOLDOWN,
+            "RewardNotReady"
+        );
+
         let level: Int = self.get_levelHeart(p);
         let heartsToAdd: Int = 0;
         if (level == 1) {
@@ -389,6 +437,50 @@ contract HelloWorld(
             mode: 0,
         });
         }
+    }
+
+    get fun get_player_info(p: Address): PlayerInfo {
+        let scoreTemp: Int? = self.scores.get(p);
+        let heartTemp: Int? = self.heart.get(p);
+        let laserTemp: Int? = self.laser.get(p);
+        let lastTimeTemp: Int? = self.lastTimeReceiveHeart.get(p);
+        let levelHeartTemp: Int? = self.levelHeart.get(p);
+        let levelDigTemp: Int? = self.levelDig.get(p);
+        let levelOreTemp: Int? = self.levelOre.get(p);
+
+        let last: Int = lastTimeTemp != null ? lastTimeTemp!! : 0;
+        let remaining: Int = 0;
+
+        if (last != 0) {
+            let passed: Int = now() - last;
+            if (passed < REWARD_HEART_COOLDOWN) {
+                remaining = REWARD_HEART_COOLDOWN - passed;
+            }
+        }
+
+        return PlayerInfo{
+            score: scoreTemp != null ? scoreTemp!! : 0,
+            heart: heartTemp != null ? heartTemp!! : 0,
+            laser: laserTemp != null ? laserTemp!! : 0,
+            lastTimeReceiveHeart: lastTimeTemp != null ? lastTimeTemp!! : 0,
+            remainingHeartCooldown: remaining,
+            levelHeart: levelHeartTemp != null ? levelHeartTemp!! : 0,
+            levelDig: levelDigTemp != null ? levelDigTemp!! : 0,
+            levelOre: levelOreTemp != null ? levelOreTemp!! : 0
+        };
+    }
+
+    // GETTER CHO TẤT CẢ GIÁ ITEMS
+    get fun get_all_prices(): ItemPrices {
+        return ItemPrices{
+            priceHeart: HEART_PRICE,
+            priceLaser: LASER_PRICE,
+            priceGold: GOLD_PRICE,
+            priceDiamond: DIAMOND_PRICE,
+            priceWin: WIN_PRICE,
+            priceUpgrade: UPGRADE_PRICE,
+            ratePerTon: self.ratePerTon,
+        };
     }
 }
 
