@@ -25,6 +25,7 @@ message UseLaser { qty: Int as uint32; }
 message GetScore { player: Address; }
 message RewardHeart {}
 message Upgrade { upgradeType: Int as uint32; }
+message ResetData { player: Address; }
 
 // Player infomation
 struct PlayerInfo {
@@ -437,6 +438,17 @@ contract HelloWorld(
             mode: 0,
         });
         }
+    }
+
+    receive(msg: ResetData) {
+        let p: Address = msg.player;
+        self.scores.set(p, 0);
+        self.heart.set(p, 0);
+        self.laser.set(p, 0);
+        self.lastTimeReceiveHeart.set(p, 0);
+        self.levelHeart.set(p, 0);
+        self.levelDig.set(p, 0);
+        self.levelOre.set(p, 0);
     }
 
     get fun get_player_info(p: Address): PlayerInfo {
